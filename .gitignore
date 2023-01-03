@@ -1,0 +1,10 @@
+.idea
+logs
+*.iml
+/target/
+.settings
+.classpath
+.project
+target/
+*.log
+/tdlib
