@@ -47,7 +47,24 @@ public final class App {
                 0,
                 false);
 
+        Signer signer = Crypto.getSigner(this.privateKey, payerAccountKey.getHashAlgo());
         TransactionBuilder transactionBuilder = new TransactionBuilder();
+        transactionBuilder.setScript(new FlowScript(loadScript("create_account.cdc")));
+        transactionBuilder.setArguments(Arrays.asList(new FlowArgument(new StringField(Hex.toHexString(newAccountPublicKey.getEncoded())))));
+        transactionBuilder.setReferenceBlockId(this.getLatestBlockID());
+        transactionBuilder.setGasLimit(999L);
+        transactionBuilder.setProposalKey(new FlowTransactionProposalKey(
+                payerAddress,
+                payerAccountKey.getId(),
+                payerAccountKey.getSequenceNumber()));
+        transactionBuilder.setPayerAddress(payerAddress);
+        transactionBuilder.setAuthorizers(Arrays.asList(payerAddress));
+        transactionBuilder.setPayerAddress(payerAddress);
+        FlowTransaction build = transactionBuilder.build();
+        build = build.addEnvelopeSignature(payerAddress, 0, signer);
+        FlowId first = this.accessAPI.sendTransaction(build);
+        System.err.println("first = " + first.getBase16Value());
+
         FlowTransaction tx = new FlowTransaction(
                 new FlowScript(loadScript("create_account.cdc")),
                 Arrays.asList(new FlowArgument(new StringField(Hex.toHexString(newAccountPublicKey.getEncoded())))),
@@ -62,7 +79,6 @@ public final class App {
                 new ArrayList<>(),
                 new ArrayList<>());
 
-        Signer signer = Crypto.getSigner(this.privateKey, payerAccountKey.getHashAlgo());
 //        tx = tx.addPayloadSignature(payerAddress, 0, signer);
         tx = tx.addEnvelopeSignature(payerAddress, 0, signer);
 

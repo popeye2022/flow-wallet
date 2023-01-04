@@ -15,6 +15,9 @@
     <description>flow-wallet</description>
     <properties>
         <java.version>11</java.version>
+        <grpc.version>1.6.1</grpc.version>
+        <protobuf.version>3.3.0</protobuf.version>
+
     </properties>
     <dependencies>
         <dependency>
@@ -165,6 +168,22 @@
             <artifactId>kotlin-stdlib</artifactId>
             <version>1.4.10</version>
         </dependency>
+
+        <!--  protobuf 支持 Java 核心包-->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.21.12</version>
+        </dependency>
+
+
+        <!--  proto 与 Json 互转会用到-->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>3.21.12</version>
+        </dependency>
+
 
     </dependencies>
     <build>
