@@ -6,6 +6,7 @@ import com.nftco.flow.sdk.cadence.AddressField;
 import com.nftco.flow.sdk.cadence.StringField;
 import com.nftco.flow.sdk.cadence.UFix64NumberField;
 import com.nftco.flow.sdk.crypto.Crypto;
+import com.nftco.flow.sdk.crypto.PrivateKey;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.io.IOException;
@@ -18,11 +19,15 @@ import java.util.Arrays;
 
 public final class AppFlowSdk {
     public static void main(String[] args) throws Exception {
-//        KeyPair keyPair = Crypto.generateKeyPair(SignatureAlgorithm.ECDSA_P256);
+        com.nftco.flow.sdk.crypto.KeyPair keyPair = Crypto.generateKeyPair(SignatureAlgorithm.ECDSA_P256);
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-
         String privateKye = "00970f0c8b7dee62add01a16c0ea025d11c0e44cd553667a9c08b4fd7cef34ccf4";
-        AppFlowSdk flowSdk = new AppFlowSdk(privateKye);
+
+        PrivateKey privateKey1 = Crypto.decodePrivateKey(privateKye);
+        System.err.println(privateKey1.getHex());
+
+
+        App appNew = new App(privateKye);
         String publicKey = "a07b0f9f0834398d7dcb2b3c978629455bc30b817392a8487c97cb17f555eb3f526519024caade84a9b039df75f70ba3ec1ef7f5d9812b8980ffdcf031e874ed";
 
 //        PrivateKey privateKey1 = Crypto.decodePrivateKey(privateKye);
@@ -30,7 +35,7 @@ public final class AppFlowSdk {
         FlowAddress sender = new FlowAddress("0xe5bba85f3ad94fbe");
         FlowAddress recipientAddress = new FlowAddress("0x656d3fe8b0979cc5");
 
-        flowSdk.createAccount(sender,publicKey);
+        appNew.createAccount(sender,publicKey);
 //        appNew.transferTokens(sender,recipientAddress,new BigDecimal("1.12345678"));
     }
 

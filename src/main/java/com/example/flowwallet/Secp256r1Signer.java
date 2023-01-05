@@ -15,25 +15,15 @@
 package com.example.flowwallet;
 
 import com.nftco.flow.sdk.crypto.Crypto;
-import lombok.val;
-import org.bouncycastle.asn1.ASN1Encoding;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.DSA;
-import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
-import org.bouncycastle.crypto.signers.ECDSASigner;
-import org.bouncycastle.crypto.signers.HMacDSAKCalculator;
-import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.ECPointUtil;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECPrivateKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
@@ -41,8 +31,7 @@ import org.bouncycastle.math.ec.FixedPointCombMultiplier;
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.util.encoders.Hex;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+
 import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -88,38 +77,11 @@ public class Secp256r1Signer implements Signer {
     @Override
     public byte[] publicKey(byte[] privateKey) {
 
-//        val ecParameterSpec = ECNamedCurveTable.getParameterSpec(algo.curve)
-//        val keyFactory = KeyFactory.getInstance("EC", "BC")
-//        val params = ECNamedCurveSpec(
-//                algo.curve,
-//                ecParameterSpec.curve, ecParameterSpec.g, ecParameterSpec.n
-//        )
-//        val point = ECPointUtil.decodePoint(params.curve, byteArrayOf(0x04) + key.hexToBytes())
-//        val pubKeySpec = ECPublicKeySpec(point, params)
-//        val publicKey = keyFactory.generatePublic(pubKeySpec)
-//        return PublicKey(
-//                key = publicKey,
-//                hex = if (publicKey is ECPublicKey) {
-//            (publicKey.q.xCoord.encoded + publicKey.q.yCoord.encoded).bytesToHex()
-//        } else {
-//            throw IllegalArgumentException("PublicKey must be an ECPublicKey")
-//        }
-//        )
-
         ECPoint q = new FixedPointCombMultiplier().multiply(CURVE.getG(), new BigInteger(1, privateKey));
         ECPublicKeyParameters p = new ECPublicKeyParameters(q, CURVE);
         byte[] temp = new byte[p.getQ().getXCoord().getEncoded().length + p.getQ().getYCoord().getEncoded().length];
-
-        System.arraycopy(p.getQ().getXCoord().getEncoded(),0,temp,0,p.getQ().getXCoord().getEncoded().length);
-        System.arraycopy(p.getQ().getYCoord().getEncoded(),0,temp,p.getQ().getXCoord().getEncoded().length,p.getQ().getYCoord().getEncoded().length);
+        ByteUtils.combineByte(p.getQ().getXCoord().getEncoded(),p.getQ().getYCoord().getEncoded());
         return temp;
-//        (p.getQ().getXCoord().getEncoded() +  p.getQ().getYCoord().getEncoded())
-//        try {
-//            byte[] pubBytes = SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(p).getEncoded(ASN1Encoding.DER);
-//            return pubBytes;
-//        } catch (IOException io) {
-//            throw new RuntimeException(io);
-//        }
     }
 
     @Override
@@ -128,7 +90,7 @@ public class Secp256r1Signer implements Signer {
         System.err.println("key = " + key);
         ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(key, 16), ecParameterSpec);
+        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(key,16), ecParameterSpec);
         ECPrivateKey ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(ecPrivateKeySpec);
 
         Signature ecdsaSign = Signature.getInstance("SHA256withECDSA");
@@ -139,30 +101,7 @@ public class Secp256r1Signer implements Signer {
 
         byte[] bytes = Crypto.normalizeSignature(sign, 32);
         return bytes;
-//        if (privateKey.ecCoupleComponentSize <= 0) {
-//            return signature
-//        }
 
-
-//        DSA signer = new ECDSASigner(new HMacDSAKCalculator(new SHA256Digest()));;
-//        ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(new BigInteger(1, privateKey), CURVE);
-//        signer.init(true, privKey);
-//        BigInteger[] components = signer.generateSignature(msg);
-//
-//        ECDSASignature ecdsaSig = new ECDSASignature(components[0], components[1]).toCanonicalised();
-//
-//        ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
-//        try {
-//            DERSequenceGenerator der = new DERSequenceGenerator(baos);
-//            der.addObject(new ASN1Integer(ecdsaSig.r));
-//            der.addObject(new ASN1Integer(ecdsaSig.s));
-//            der.close();
-//            byte[] sig = baos.toByteArray();
-//            return sig;
-//        } catch (IOException e) {
-//            // TODO: log
-//            return null;
-//        }
     }
 
     @Override

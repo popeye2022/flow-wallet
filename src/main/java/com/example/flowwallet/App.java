@@ -26,7 +26,7 @@ public final class App {
 
 
         App appNew = new App(privateKye);
-        String publicKey = "a07b0f9f0834398d7dcb2b3c978629455bc30b817392a8487c97cb17f555eb3f526519024caade84a9b039df75f70ba3ec1ef7f5d9812b8980ffdcf031e874eds";
+        String publicKey = "a07b0f9f0834398d7dcb2b3c978629455bc30b817392a8487c97cb17f555eb3f526519024caade84a9b039df75f70ba3ec1ef7f5d9812b8980ffdcf031e874ed";
 
 //        PrivateKey privateKey1 = Crypto.decodePrivateKey(privateKye);
 

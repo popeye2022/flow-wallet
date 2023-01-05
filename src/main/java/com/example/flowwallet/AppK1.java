@@ -30,8 +30,8 @@ public final class AppK1 {
         FlowAddress sender = new FlowAddress("0xe5bba85f3ad94fbe");
         FlowAddress recipientAddress = new FlowAddress("0x656d3fe8b0979cc5");
 
-        appNew.createAccount(sender,publicKey);
-//        appNew.transferTokens(sender,recipientAddress,new BigDecimal("1.12345678"));
+//        appNew.createAccount(sender,publicKey);
+        appNew.transferTokens(sender,recipientAddress,new BigDecimal("0.96980330"));
     }
 
     private final FlowAccessApi accessAPI;
@@ -71,11 +71,14 @@ public final class AppK1 {
 
 //        Signer signer = Crypto.getSigner(this.privateKey, payerAccountKey.getHashAlgo());
 //        tx = tx.addPayloadSignature(payerAddress, 0, signer);
+        byte[] transaction_domain_tag = DomainTag.getTRANSACTION_DOMAIN_TAG();
         byte[] canonicalAuthorizationEnvelope = tx.getCanonicalAuthorizationEnvelope();
+
+
 
         Secp256r1Signer ecdsap256Signer1 = new Secp256r1Signer();
         byte[] privateKey = ecdsap256Signer1.recoverKey(this.privateKey.getHex());
-        byte[] signResult = ecdsap256Signer1.signMsg(canonicalAuthorizationEnvelope, privateKey);
+        byte[] signResult = ecdsap256Signer1.signMsg(ByteUtils.combineByte(transaction_domain_tag,canonicalAuthorizationEnvelope), privateKey);
 
         FlowSignature flowSignature = new FlowSignature(signResult);
         tx = tx.addEnvelopeSignature(payerAddress, 0, flowSignature);
@@ -110,10 +113,22 @@ public final class AppK1 {
                 new ArrayList<>(),
                 new ArrayList<>());
 
-        Signer signer = Crypto.getSigner(this.privateKey, senderAccountKey.getHashAlgo());
-        tx = tx.addEnvelopeSignature(senderAddress, senderAccountKey.getId(), signer);
+//        Signer signer = Crypto.getSigner(this.privateKey, senderAccountKey.getHashAlgo());
+//        tx = tx.addEnvelopeSignature(senderAddress, senderAccountKey.getId(), signer);
+
+        byte[] transaction_domain_tag = DomainTag.getTRANSACTION_DOMAIN_TAG();
+        byte[] canonicalAuthorizationEnvelope = tx.getCanonicalAuthorizationEnvelope();
+
+        Secp256r1Signer ecdsap256Signer1 = new Secp256r1Signer();
+        byte[] privateKey = ecdsap256Signer1.recoverKey(this.privateKey.getHex());
+        byte[] signResult = ecdsap256Signer1.signMsg(ByteUtils.combineByte(transaction_domain_tag,canonicalAuthorizationEnvelope), privateKey);
+
+        FlowSignature flowSignature = new FlowSignature(signResult);
+        tx = tx.addEnvelopeSignature(senderAddress, 0, flowSignature);
+
 
         FlowId txID = this.accessAPI.sendTransaction(tx);
+        System.err.println("txId = " + txID);
         this.waitForSeal(txID);
     }
 
