@@ -6,27 +6,24 @@ import com.nftco.flow.sdk.cadence.AddressField;
 import com.nftco.flow.sdk.cadence.StringField;
 import com.nftco.flow.sdk.cadence.UFix64NumberField;
 import com.nftco.flow.sdk.crypto.Crypto;
-import com.nftco.flow.sdk.crypto.KeyPair;
-import com.nftco.flow.sdk.crypto.PrivateKey;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
-public final class App {
+
+public final class AppK1 {
     public static void main(String[] args) throws Exception {
-        KeyPair keyPair = Crypto.generateKeyPair(SignatureAlgorithm.ECDSA_P256);
+//        KeyPair keyPair = Crypto.generateKeyPair(SignatureAlgorithm.ECDSA_P256);
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         String privateKye = "00970f0c8b7dee62add01a16c0ea025d11c0e44cd553667a9c08b4fd7cef34ccf4";
-
-        PrivateKey privateKey1 = Crypto.decodePrivateKey(privateKye);
-        System.err.println(privateKey1.getHex());
-
-
-        App appNew = new App(privateKye);
-        String publicKey = "a07b0f9f0834398d7dcb2b3c978629455bc30b817392a8487c97cb17f555eb3f526519024caade84a9b039df75f70ba3ec1ef7f5d9812b8980ffdcf031e874eds";
+        AppK1 appNew = new AppK1(privateKye);
+        String publicKey = "a07b0f9f0834398d7dcb2b3c978629455bc30b817392a8487c97cb17f555eb3f526519024caade84a9b039df75f70ba3ec1ef7f5d9812b8980ffdcf031e874ed";
 
 //        PrivateKey privateKey1 = Crypto.decodePrivateKey(privateKye);
 
@@ -38,14 +35,14 @@ public final class App {
     }
 
     private final FlowAccessApi accessAPI;
-    private final PrivateKey privateKey;
+    private final com.nftco.flow.sdk.crypto.PrivateKey privateKey;
 
-    public App(String privateKeyHex) {
+    public AppK1(String privateKeyHex) {
         this.accessAPI = Flow.newAccessApi("access.devnet.nodes.onflow.org");
         this.privateKey = Crypto.decodePrivateKey(privateKeyHex);
     }
 
-    public FlowAddress createAccount(FlowAddress payerAddress, String publicKeyHex) {
+    public FlowAddress createAccount(FlowAddress payerAddress, String publicKeyHex) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, SignatureException, InvalidKeyException {
         FlowAccountKey payerAccountKey = this.getAccountKey(payerAddress, 0);
         System.err.println("SequenceNumber() = " + payerAccountKey.getSequenceNumber());
         FlowAccountKey newAccountPublicKey = new FlowAccountKey(
@@ -72,10 +69,16 @@ public final class App {
                 new ArrayList<>(),
                 new ArrayList<>());
 
-        com.nftco.flow.sdk.Signer signer = Crypto.getSigner(this.privateKey, payerAccountKey.getHashAlgo());
+//        Signer signer = Crypto.getSigner(this.privateKey, payerAccountKey.getHashAlgo());
 //        tx = tx.addPayloadSignature(payerAddress, 0, signer);
-        tx = tx.addEnvelopeSignature(payerAddress, 0, signer);
+        byte[] canonicalAuthorizationEnvelope = tx.getCanonicalAuthorizationEnvelope();
 
+        Secp256r1Signer ecdsap256Signer1 = new Secp256r1Signer();
+        byte[] privateKey = ecdsap256Signer1.recoverKey(this.privateKey.getHex());
+        byte[] signResult = ecdsap256Signer1.signMsg(canonicalAuthorizationEnvelope, privateKey);
+
+        FlowSignature flowSignature = new FlowSignature(signResult);
+        tx = tx.addEnvelopeSignature(payerAddress, 0, flowSignature);
 
         FlowId txID = this.accessAPI.sendTransaction(tx);
         System.err.println("txID = " + txID.getBase16Value());
