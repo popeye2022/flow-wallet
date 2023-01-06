@@ -24,7 +24,10 @@ import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.ECPointUtil;
+import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.jce.spec.ECPrivateKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.math.ec.FixedPointCombMultiplier;
@@ -34,6 +37,7 @@ import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
 import java.security.*;
+import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.UUID;
 
@@ -62,16 +66,22 @@ public class Secp256r1Signer implements Signer {
     }
 
     public byte[] recoverKey(String key) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
-        ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
-        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(key, 16), ecParameterSpec);
-        ECPrivateKey ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(ecPrivateKeySpec);
+//        ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
+//        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
+//        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(key, 16), ecParameterSpec);
+//        ECPrivateKey ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(ecPrivateKeySpec);
+//
+//        int i = ecPrivateKey.getParameters().getN().bitLength() / 8;
+//        System.err.println("bitLength = " + i );
+//        byte[] bytes = ecPrivateKey.getD().toByteArray();
+//        String s = Hex.toHexString(bytes);
+//        return bytes;
 
-        int i = ecPrivateKey.getParameters().getN().bitLength() / 8;
-        System.err.println("bitLength = " + i );
-        byte[] bytes = ecPrivateKey.getD().toByteArray();
-        String s = Hex.toHexString(bytes);
-        return bytes;
+//        ECPrivateKeyParameters privParams = new ECPrivateKeyParameters(new BigInteger(1, Hex.decode(key)), CURVE);
+
+        ECPrivateKeyParameters privParams = new ECPrivateKeyParameters(new BigInteger(key, 16), CURVE);
+        System.err.println(Hex.toHexString(privParams.getD().toByteArray()));
+        return privParams.getD().toByteArray();
     }
 
     @Override
@@ -79,18 +89,30 @@ public class Secp256r1Signer implements Signer {
 
         ECPoint q = new FixedPointCombMultiplier().multiply(CURVE.getG(), new BigInteger(1, privateKey));
         ECPublicKeyParameters p = new ECPublicKeyParameters(q, CURVE);
-        byte[] temp = new byte[p.getQ().getXCoord().getEncoded().length + p.getQ().getYCoord().getEncoded().length];
-        ByteUtils.combineByte(p.getQ().getXCoord().getEncoded(),p.getQ().getYCoord().getEncoded());
-        return temp;
+        return ByteUtils.combineByte(p.getQ().getXCoord().getEncoded(),p.getQ().getYCoord().getEncoded());
     }
 
+    public void deocdepublickey(String pubkey) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+        ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        ECNamedCurveSpec params = new ECNamedCurveSpec("P-256", ecParameterSpec.getCurve(), ecParameterSpec.getG(), ecParameterSpec.getN());
+        byte[] bytes = ByteUtils.combineByte(Hex.decode("04"), Hex.decode(pubkey));
+        java.security.spec.ECPoint ecPoint = ECPointUtil.decodePoint(params.getCurve(), bytes);
+        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecPoint, params);
+        ECPublicKey ecPublicKey = (ECPublicKey) keyFactory.generatePublic(pubKeySpec);
+
+//        publicKey.q.xCoord.encoded + publicKey.q.yCoord.encoded
+        byte[] bytes1 = ByteUtils.combineByte(ecPublicKey.getQ().getXCoord().getEncoded(), ecPublicKey.getQ().getYCoord().getEncoded());
+        System.err.println("deocdepublickey = " + Hex.toHexString(bytes1));
+    }
     @Override
     public byte[] signMsg(byte[] msg, byte[] privateKey) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+
         String key = Hex.toHexString(privateKey);
-        System.err.println("key = " + key);
+        System.err.println("signMsg key = " + key);
         ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(key,16), ecParameterSpec);
+        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(privateKey), ecParameterSpec);
         ECPrivateKey ecPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(ecPrivateKeySpec);
 
         Signature ecdsaSign = Signature.getInstance("SHA256withECDSA");
@@ -100,10 +122,25 @@ public class Secp256r1Signer implements Signer {
         byte[] sign = ecdsaSign.sign();
 
         byte[] bytes = Crypto.normalizeSignature(sign, 32);
-        return bytes;
+        return sign;
 
     }
 
+    public Boolean verifySing(byte[] sign,String pubkey) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+        Signature ecdsaSign = Signature.getInstance("SHA256withECDSA");
+
+        ECNamedCurveParameterSpec ecParameterSpec = ECNamedCurveTable.getParameterSpec("P-256");
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        ECNamedCurveSpec params = new ECNamedCurveSpec("P-256", ecParameterSpec.getCurve(), ecParameterSpec.getG(), ecParameterSpec.getN());
+        byte[] bytes = ByteUtils.combineByte(Hex.decode("04"), Hex.decode(pubkey));
+        java.security.spec.ECPoint ecPoint = ECPointUtil.decodePoint(params.getCurve(), bytes);
+        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecPoint, params);
+        ECPublicKey ecPublicKey = (ECPublicKey) keyFactory.generatePublic(pubKeySpec);
+
+
+        ecdsaSign.initVerify(ecPublicKey);
+        return ecdsaSign.verify(sign);
+    }
     @Override
     public boolean validate(byte[] privateKey) {
         try {
